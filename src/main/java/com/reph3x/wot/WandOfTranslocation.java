@@ -1,5 +1,6 @@
 package com.reph3x.wot;
 
+import com.reph3x.wot.item.ModItems;
 import net.fabricmc.api.ModInitializer;
 
 import org.slf4j.Logger;
@@ -11,7 +12,6 @@ public class WandOfTranslocation implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-
-		LOGGER.info("Hello Fabric world!");
+		ModItems.registerModItems();
 	}
 }
