@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class WandOfTranslocationItem extends Item {
+    //TODO: Go through and make methods for those big long ugly loops so they are more readable
 
 
     public static final String FULL_KEY = "isfull";
@@ -36,62 +37,39 @@ public class WandOfTranslocationItem extends Item {
             PlayerEntity player = context.getPlayer();
             assert player != null;
             BlockState blockClicked = world.getBlockState(positionClicked);
-            NbtCompound stackNbt = player.getMainHandStack().getOrCreateNbt();
+            NbtCompound stackNbt = new NbtCompound();
 
-            //IF THERE IS SOMETHING STORED IN THE WAND
-            if(stackNbt.contains(FULL_KEY) && stackNbt.getBoolean(FULL_KEY)) {
-                //IF THERE IS A CHEST STORED
-                if(stackNbt.contains(TYPE_KEY) && stackNbt.getInt(TYPE_KEY) == 0) {
-                    BlockState blockAboveClicked = world.getBlockState(positionClicked.up());
-                    BlockState blockTwoAboveClicked = world.getBlockState(positionClicked.up(2));
+            if(!player.getMainHandStack().hasNbt())  {
+                initializeNbt(stackNbt, player.getMainHandStack());
+            } else { stackNbt = player.getMainHandStack().getNbt(); }
+            assert stackNbt != null;
 
-                    if(!blockAboveClicked.isAir()) {
-                        player.sendMessage(Text.literal("Invalid Chest Placement: Block For Chest Is Not Air."), false);
-                        return ActionResult.FAIL;
-                    }
-                    if(blockTwoAboveClicked.isSolidBlock(world, positionClicked.up(2))) {
-                        player.sendMessage(Text.literal("Invalid Chest Placement: Block Above Chest Is Solid."), false);
-                        return ActionResult.FAIL;
-                    }
+            if(wandIsFull(stackNbt)) {
 
-                    player.sendMessage(Text.literal("Valid Chest Placement!"),false);
-                    stackNbt.putBoolean(FULL_KEY, false);
-                    world.setBlockState(positionClicked.up(), Blocks.CHEST.getDefaultState());
-                    return ActionResult.SUCCESS;
-                }
-                //IF THERE IS A BARREL STORED
-                if(stackNbt.contains(TYPE_KEY) && stackNbt.getInt(TYPE_KEY) == 1) {
-                    BlockState blockAboveClicked = world.getBlockState(positionClicked.up());
-                    if(!blockAboveClicked.isAir()) {
-                        player.sendMessage(Text.literal("Invalid Barrel Placement: Block For Barrel Is Not Air."), false);
-                        return ActionResult.FAIL;
-                    }
-                    player.sendMessage(Text.literal("Valid Barrel Placement!"),false);
-                    stackNbt.putBoolean(FULL_KEY, false);
-                    world.setBlockState(positionClicked.up(), Blocks.BARREL.getDefaultState());
-                    return ActionResult.SUCCESS;
+                if(wandContainsChest(stackNbt)) {
+                    if(determineChestPlacement(world, positionClicked, player, stackNbt)) { return ActionResult.SUCCESS; }
+                    else { return ActionResult.FAIL; }
                 }
 
-            //IF THERE IS NOTHING STORED IN THE WAND
+                if(wandContainsBarrel(stackNbt)) {
+                    if (determineBarrelPlacement(world, positionClicked, player, stackNbt)) { return ActionResult.SUCCESS; }
+                    else { return ActionResult.FAIL; }
+                }
+
             } else {
+
                 assert player != null;
                 if(blockClicked.isOf(Blocks.CHEST)) {
-                    stackNbt.putBoolean(FULL_KEY, true);
-                    stackNbt.putInt(TYPE_KEY, 0);
-                    world.removeBlock(positionClicked, false);
+                    fillWandWithChest(world, positionClicked, stackNbt);
                     return ActionResult.SUCCESS;
                 }
                 if(blockClicked.isOf(Blocks.BARREL)) {
-                    stackNbt.putBoolean(FULL_KEY, true);
-                    stackNbt.putInt(TYPE_KEY, 1);
-                    world.removeBlock(positionClicked, false);
+                    fillWandWithBarrel(world, positionClicked, stackNbt);
                     return ActionResult.SUCCESS;
                 }
             }
 
         }
-
-
         return ActionResult.FAIL;
     }
 
@@ -113,6 +91,58 @@ public class WandOfTranslocationItem extends Item {
 
         }
         super.appendTooltip(stack, world, tooltip, context);
+    }
+
+
+    private void initializeNbt(NbtCompound stackNbt, ItemStack itemStack) {
+        stackNbt = itemStack.getOrCreateNbt();
+        stackNbt.putBoolean(FULL_KEY, false);
+        stackNbt.putInt(TYPE_KEY, -1);
+    }
+
+    private boolean wandIsFull(NbtCompound stackNbt) { return stackNbt.contains(FULL_KEY) && stackNbt.getBoolean(FULL_KEY); }
+    private boolean wandContainsChest(NbtCompound stackNbt) { return stackNbt.contains(TYPE_KEY) && stackNbt.getInt(TYPE_KEY) == 0; }
+    private boolean wandContainsBarrel(NbtCompound stackNbt) { return stackNbt.contains(TYPE_KEY) && stackNbt.getInt(TYPE_KEY) == 1; }
+
+    private boolean determineChestPlacement(World world, BlockPos positionClicked, PlayerEntity player, NbtCompound stackNbt) {
+        BlockState blockAboveClicked = world.getBlockState(positionClicked.up());
+        BlockState blockTwoAboveClicked = world.getBlockState(positionClicked.up(2));
+
+        if(!blockAboveClicked.isAir()) {
+            player.sendMessage(Text.literal("Invalid Chest Placement: Block For Chest Is Not Air.").formatted(Formatting.RED), false);
+            return false;
+        }
+        if(blockTwoAboveClicked.isSolidBlock(world, positionClicked.up(2))) {
+            player.sendMessage(Text.literal("Invalid Chest Placement: Block Above Chest Is Solid.").formatted(Formatting.RED), false);
+            return false;
+        }
+
+        player.sendMessage(Text.literal("Valid Chest Placement!").formatted(Formatting.GREEN),false);
+        stackNbt.putBoolean(FULL_KEY, false);
+        world.setBlockState(positionClicked.up(), Blocks.CHEST.getDefaultState());
+        return true;
+    }
+    private boolean determineBarrelPlacement(World world, BlockPos positionClicked, PlayerEntity player, NbtCompound stackNbt) {
+        BlockState blockAboveClicked = world.getBlockState(positionClicked.up());
+        if(!blockAboveClicked.isAir()) {
+            player.sendMessage(Text.literal("Invalid Barrel Placement: Block For Barrel Is Not Air.").formatted(Formatting.RED), false);
+            return false;
+        }
+        player.sendMessage(Text.literal("Valid Barrel Placement!").formatted(Formatting.GREEN),false);
+        stackNbt.putBoolean(FULL_KEY, false);
+        world.setBlockState(positionClicked.up(), Blocks.BARREL.getDefaultState());
+        return true;
+    }
+
+    private void fillWandWithChest(World world, BlockPos positionClicked, NbtCompound stackNbt) {
+        stackNbt.putBoolean(FULL_KEY, true);
+        stackNbt.putInt(TYPE_KEY, 0);
+        world.removeBlock(positionClicked, false);
+    }
+    private void fillWandWithBarrel(World world, BlockPos positionClicked, NbtCompound stackNbt) {
+        stackNbt.putBoolean(FULL_KEY, true);
+        stackNbt.putInt(TYPE_KEY, 1);
+        world.removeBlock(positionClicked, false);
     }
 
 }
