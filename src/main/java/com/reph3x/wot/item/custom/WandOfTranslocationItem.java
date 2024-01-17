@@ -16,7 +16,7 @@ public class WandOfTranslocationItem extends Item {
 
     public WandOfTranslocationItem(Settings settings) {
         super(settings);
-        isFull = false;
+        isFull = true;
     }
 
     @Override
@@ -26,7 +26,28 @@ public class WandOfTranslocationItem extends Item {
             BlockPos positionClicked = context.getBlockPos();
             PlayerEntity player = context.getPlayer();
             BlockState blockClicked = world.getBlockState(positionClicked);
+
             if(isFull) {
+                //TODO: Must differentiate if the stored inventory is a chest or barrel because barrels do not require a non-solid block above them.
+                assert player!= null;
+                BlockState blockAboveClicked = world.getBlockState(positionClicked.up());
+                BlockState blockTwoAboveClicked = world.getBlockState(positionClicked.up(2));
+
+                if(!blockClicked.isSolidBlock(world, positionClicked)) {
+                    player.sendMessage(Text.literal("Invalid Chest Placement: Block Below Chest Is Not Solid."), false);
+                    return ActionResult.FAIL;
+                }
+                if(!blockAboveClicked.isAir()) {
+                    player.sendMessage(Text.literal("Invalid Chest Placement: Block For Chest Is Not Air."), false);
+                    return ActionResult.FAIL;
+                }
+                if(blockTwoAboveClicked.isSolidBlock(world, positionClicked.up(2))) {
+                    player.sendMessage(Text.literal("Invalid Chest Placement: Block Above Chest Is Solid."), false);
+                    return ActionResult.FAIL;
+                }
+
+                player.sendMessage(Text.literal("Valid Chest Placement!"),false);
+
 
             } else {
                 assert player != null;
@@ -39,6 +60,8 @@ public class WandOfTranslocationItem extends Item {
             }
 
         }
+
+
         return ActionResult.FAIL;
     }
 }
