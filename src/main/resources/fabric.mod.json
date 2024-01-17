@@ -1,0 +1,44 @@
+{
+	"schemaVersion": 1,
+	"id": "wandoftranslocation",
+	"version": "${version}",
+	"name": "Wand Of Translocation",
+	"description": "Allows you to move chests without emptying them.",
+	"authors": [
+		"Rep_H3x"
+	],
+	"contact": {
+		"homepage": "no",
+		"sources": "no"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/wandoftranslocation/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.reph3x.wot.WandOfTranslocation"
+		],
+		"client": [
+			"com.reph3x.wot.WandOfTranslocationClient"
+		],
+		"fabric-datagen": [
+			"com.reph3x.wot.WandOfTranslocationDataGenerator"
+		]
+	},
+	"mixins": [
+		"wandoftranslocation.mixins.json",
+		{
+			"config": "wandoftranslocation.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.15.5",
+		"minecraft": "~1.20.4",
+		"java": ">=17",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}
