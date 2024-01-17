@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "tool",
+  "pattern": [
+    "  A",
+    " B ",
+    "B  "
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:ender_pearl"
+    },
+    "B": {
+      "item": "minecraft:iron_ingot"
+    }
+  },
+  "result": {
+    "item": "wandoftranslocation:wandoftranslocation",
+    "count": 1
+  }
+}

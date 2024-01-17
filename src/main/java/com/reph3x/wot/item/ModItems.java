@@ -1,6 +1,7 @@
 package com.reph3x.wot.item;
 
 import com.reph3x.wot.WandOfTranslocation;
+import com.reph3x.wot.item.custom.WandOfTranslocationItem;
 import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroupEntries;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
@@ -12,7 +13,7 @@ import net.minecraft.util.Identifier;
 
 public class ModItems {
 
-    public static final Item WAND_OF_TRANSLOCATION = registerItem("wandoftranslocation", new Item(new FabricItemSettings()));
+    public static final Item WAND_OF_TRANSLOCATION = registerItem("wandoftranslocation", new WandOfTranslocationItem(new FabricItemSettings().maxCount(1)));
 
     private static void addItemsToToolTabItemGroup(FabricItemGroupEntries entries) {
         entries.add(WAND_OF_TRANSLOCATION);
