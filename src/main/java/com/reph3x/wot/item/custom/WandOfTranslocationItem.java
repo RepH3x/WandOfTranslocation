@@ -1,9 +1,12 @@
 package com.reph3x.wot.item.custom;
 
+import com.reph3x.wot.WandOfTranslocation;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.ChestBlock;
 import net.minecraft.block.entity.BarrelBlockEntity;
 import net.minecraft.block.entity.ChestBlockEntity;
+import net.minecraft.block.enums.ChestType;
 import net.minecraft.client.item.TooltipContext;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.SimpleInventory;
@@ -40,7 +43,7 @@ public class WandOfTranslocationItem extends Item {
 
     @Override
     public void onCraft(ItemStack stack, World world) {
-        initializeNbt(stack.getOrCreateNbt(), stack);
+        initializeNbt(stack);
         super.onCraft(stack, world);
     }
 
@@ -51,12 +54,9 @@ public class WandOfTranslocationItem extends Item {
         PlayerEntity player = context.getPlayer();
         assert player != null;
         BlockState blockClicked = world.getBlockState(positionClicked);
-        NbtCompound stackNbt = player.getMainHandStack().getNbt();
 
-        if(!player.getMainHandStack().hasNbt())  {
-            initializeNbt(stackNbt, player.getMainHandStack());
-        } else { stackNbt = player.getMainHandStack().getNbt(); }
-        assert stackNbt != null;
+        NbtCompound stackNbt = player.getMainHandStack().getNbt();
+        if(stackNbt == null) stackNbt = initializeNbt(player.getMainHandStack());
 
         if(wandIsFull(stackNbt)) {
             if(wandContainsChest(stackNbt)) {
@@ -66,7 +66,6 @@ public class WandOfTranslocationItem extends Item {
             if(wandContainsBarrel(stackNbt)) {
                 if(handleBarrelPlacement(world, positionClicked, player, stackNbt)) return ActionResult.SUCCESS;
             }
-
         }
         else {
             if(blockClicked.isOf(Blocks.CHEST)) {
@@ -102,22 +101,32 @@ public class WandOfTranslocationItem extends Item {
     }
 
 
-    private void initializeNbt(NbtCompound stackNbt, ItemStack itemStack) {
-        stackNbt = itemStack.getOrCreateNbt();
+    private NbtCompound initializeNbt(ItemStack itemStack) {
+        NbtCompound stackNbt = itemStack.getOrCreateNbt();
         stackNbt.putBoolean(FULL_KEY, false);
         stackNbt.putInt(TYPE_KEY, -1);
+        return stackNbt;
     }
 
     private boolean wandIsFull(NbtCompound stackNbt) { return stackNbt.contains(FULL_KEY) && stackNbt.getBoolean(FULL_KEY); }
     private boolean wandContainsChest(NbtCompound stackNbt) { return stackNbt.contains(TYPE_KEY) && stackNbt.getInt(TYPE_KEY) == 0; }
     private boolean wandContainsBarrel(NbtCompound stackNbt) { return stackNbt.contains(TYPE_KEY) && stackNbt.getInt(TYPE_KEY) == 1; }
+    private int neighborIsChest(World world, BlockPos pos) {
+        if(world.getBlockState(pos.north()).isOf(Blocks.CHEST)) return 0;
+        if(world.getBlockState(pos.south()).isOf(Blocks.CHEST)) return 1;
+        if(world.getBlockState(pos.east()).isOf(Blocks.CHEST)) return 2;
+        if(world.getBlockState(pos.west()).isOf(Blocks.CHEST)) return 3;
+        return -1;
+    }
 
     private boolean handleChestPlacement(World world, BlockPos pos, PlayerEntity player, NbtCompound stackNbt) {
+        //ChestBlock getPlacementState() for chest facing on placement reference I think
         if(!world.isClient()) {
             if(determineChestPlacement(world, pos, player, stackNbt)) {
                 stackNbt.putBoolean(FULL_KEY, false);
                 world.setBlockState(pos.up(), Blocks.CHEST.getDefaultState());
                 populateChest(world, pos.up(), stackNbt);
+                attemptChestMerging(world, pos.up());
                 return true;
             }
         } else {
@@ -128,6 +137,29 @@ public class WandOfTranslocationItem extends Item {
             }
         }
         return false;
+    }
+    private boolean attemptChestMerging(World world, BlockPos pos) {
+        BlockState neighborChest = null;
+        switch(neighborIsChest(world, pos)) {
+            case -1: return false;
+            case 0: //north
+                neighborChest = world.getBlockState(pos.north());
+                break;
+            case 1: //south
+                neighborChest = world.getBlockState(pos.south());
+                break;
+            case 2: //east
+                neighborChest = world.getBlockState(pos.east());
+                break;
+            case 3: //west
+                neighborChest = world.getBlockState(pos.west());
+                break;
+        }
+        assert neighborChest != null;
+        if(neighborChest.get(ChestBlock.CHEST_TYPE).equals(ChestType.SINGLE)) {
+            WandOfTranslocation.LOGGER.info("Placed next to a single chest.");
+        } else WandOfTranslocation.LOGGER.info("Placed next to a double chest.");
+        return true;
     }
     private boolean handleBarrelPlacement(World world, BlockPos pos, PlayerEntity player, NbtCompound stackNbt) {
         if(!world.isClient()) {
@@ -198,9 +230,7 @@ public class WandOfTranslocationItem extends Item {
         ChestBlockEntity chest = (ChestBlockEntity)world.getBlockEntity(pos);
         SimpleInventory inventory = new SimpleInventory(CHEST_SLOT_COUNT);
         for(int i = 0; i < chest.size(); i++) {
-            if(!world.isClient()) {
                 inventory.setStack(i, chest.getStack(i).copy());
-            }
         }
         stackNbt.putBoolean(FULL_KEY, true);
         stackNbt.putInt(TYPE_KEY, 0);
@@ -211,9 +241,7 @@ public class WandOfTranslocationItem extends Item {
         BarrelBlockEntity barrel = (BarrelBlockEntity)world.getBlockEntity(pos);
         SimpleInventory inventory = new SimpleInventory(CHEST_SLOT_COUNT);
         for(int i = 0; i < barrel.size(); i++) {
-            if(!world.isClient()) {
                 inventory.setStack(i, barrel.getStack(i).copy());
-            }
         }
         stackNbt.putBoolean(FULL_KEY, true);
         stackNbt.putInt(TYPE_KEY, 1);
