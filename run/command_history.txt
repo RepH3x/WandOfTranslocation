@@ -1,0 +1,11 @@
+/gamemode creative
+/give Player518 wand
+/give Player518 wand-of-translocation:wand_of_translocation 1
+/give Player783 wot:wand_of_translocation 1
+/give @p wot:wand_of_translocation
+/gamemode survival
+/give @p minecraft:chest 64
+/give @p minecraft:barrel 64
+/gamemode creative
+/gamemode survival
+/give @p minecraft:crafting_table 1
