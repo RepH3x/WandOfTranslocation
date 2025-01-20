@@ -2,15 +2,15 @@ package com.reph3x.wot.custom;
 
 import com.reph3x.wot.WandOfTranslocation;
 import com.reph3x.wot.component.WandOfTranslocationComponents;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.ChestBlock;
+import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.block.entity.LootableContainerBlockEntity;
 import net.minecraft.block.enums.ChestType;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUsageContext;
+import net.minecraft.item.*;
 import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.sound.SoundCategory;
@@ -18,14 +18,16 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import org.slf4j.Logger;
 
 import java.util.*;
 
 //TODO: - Implement air gaps between items moved between inventories
-//      - Make double chests able to be picked up, maybe with left click?git
+//      - Make double chests able to be picked up, maybe with left click?
 //      - If you get really crazy maybe make a codec for inventories so air gaps work
 
 public class WandOfTranslocationItem extends Item {
@@ -103,7 +105,9 @@ public class WandOfTranslocationItem extends Item {
     private boolean handleBarrelPlacement(World world, BlockPos positionClicked, PlayerEntity player, ItemStack itemStack) {
         if(!world.isClient()) {
             if(determineBarrelPlacement(world, positionClicked, player)) {
-                world.setBlockState(positionClicked.up(), Blocks.BARREL.getDefaultState());
+                BlockHitResult hitResult = new BlockHitResult(positionClicked.toBottomCenterPos(), Direction.UP, positionClicked, false);
+                ItemPlacementContext itemContext = new ItemPlacementContext(player, player.getActiveHand(), new ItemStack(Items.BARREL), hitResult);
+                world.setBlockState(positionClicked.up(), Blocks.BARREL.getPlacementState(itemContext));
                 populateInventory(world, positionClicked.up(), itemStack);
                 itemStack.set(WandOfTranslocationComponents.WAND_IS_FULL_COMPONENT, false);
                 itemStack.set(WandOfTranslocationComponents.WAND_INVENTORY_IS_BARREL_COMPONENT, false);
@@ -125,13 +129,14 @@ public class WandOfTranslocationItem extends Item {
     private boolean handleChestPlacement(World world, BlockPos positionClicked, PlayerEntity player, ItemStack itemStack) {
         if(!world.isClient()) {
             if(determineChestPlacement(world, positionClicked, player)) {
-                world.setBlockState(positionClicked.up(), Blocks.CHEST.getDefaultState());
+                BlockHitResult hitResult = new BlockHitResult(positionClicked.toBottomCenterPos(), Direction.UP, positionClicked, false);
+                ItemPlacementContext itemContext = new ItemPlacementContext(player, player.getActiveHand(), new ItemStack(Items.CHEST), hitResult);
+                world.setBlockState(positionClicked.up(), Blocks.CHEST.getPlacementState(itemContext));
                 populateInventory(world, positionClicked.up(), itemStack);
                 itemStack.set(WandOfTranslocationComponents.WAND_IS_FULL_COMPONENT, false);
                 itemStack.set(WandOfTranslocationComponents.WAND_INVENTORY_IS_BARREL_COMPONENT, false);
                 itemStack.remove(WandOfTranslocationComponents.WAND_INVENTORY_COMPONENT);
                 itemStack.remove(WandOfTranslocationComponents.WAND_ABUNDANT_ITEM_NAME_COMPONENT);
-                attemptChestMerging(world, positionClicked.up());
                 return true;
             }
         }
@@ -155,39 +160,6 @@ public class WandOfTranslocationItem extends Item {
             spawnParticles(world, positionClicked);
             world.playSound(player, positionClicked, SoundEvents.BLOCK_WOOD_BREAK, SoundCategory.BLOCKS, 1, 0);
         }
-    }
-
-    private boolean attemptChestMerging(World world, BlockPos pos) {
-        BlockState neighborChest = null;
-        switch(isNeighborChest(world, pos)) {
-            case -1: return false;
-            case 0: //north
-                neighborChest = world.getBlockState(pos.north());
-                break;
-            case 1: //south
-                neighborChest = world.getBlockState(pos.south());
-                break;
-            case 2: //east
-                neighborChest = world.getBlockState(pos.east());
-                break;
-            case 3: //west
-                neighborChest = world.getBlockState(pos.west());
-                break;
-        }
-        assert neighborChest != null;
-        if(neighborChest.get(ChestBlock.CHEST_TYPE).equals(ChestType.SINGLE)) {
-            WandOfTranslocation.LOGGER.info("Placed next to a single chest.");
-        } else WandOfTranslocation.LOGGER.info("Placed next to a double chest.");
-        return true;
-    }
-
-    private int isNeighborChest(World world, BlockPos pos) {
-        //TODO: Need to check if chests to the sides are already double chests and skip those in favor for ones that are not
-        if (world.getBlockState(pos.north()).isOf(Blocks.CHEST)) return 0;
-        if (world.getBlockState(pos.south()).isOf(Blocks.CHEST)) return 1;
-        if (world.getBlockState(pos.east()).isOf(Blocks.CHEST)) return 2;
-        if (world.getBlockState(pos.west()).isOf(Blocks.CHEST)) return 3;
-        return -1;
     }
 
     private boolean determineChestPlacement(World world, BlockPos pos, PlayerEntity player) {
@@ -227,10 +199,10 @@ public class WandOfTranslocationItem extends Item {
                 else itemNames.compute(itemName, (k, count) -> currentItemStack.getCount() + count);
             }
         }
-        int highestCount = Collections.max(itemNames.values());
+        /*int highestCount = Collections.max(itemNames.values());
         for(Map.Entry<String, Integer> entry : itemNames.entrySet()) {
             if(entry.getValue() == highestCount) itemStack.set(WandOfTranslocationComponents.WAND_ABUNDANT_ITEM_NAME_COMPONENT, entry.getKey());
-        }
+        }*/
         itemStack.set(WandOfTranslocationComponents.WAND_IS_FULL_COMPONENT, true);
         itemStack.set(WandOfTranslocationComponents.WAND_INVENTORY_COMPONENT, inventory);
         target.clear();
