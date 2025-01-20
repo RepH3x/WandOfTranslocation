@@ -199,10 +199,10 @@ public class WandOfTranslocationItem extends Item {
                 else itemNames.compute(itemName, (k, count) -> currentItemStack.getCount() + count);
             }
         }
-        /*int highestCount = Collections.max(itemNames.values());
+        int highestCount = Collections.max(itemNames.values());
         for(Map.Entry<String, Integer> entry : itemNames.entrySet()) {
             if(entry.getValue() == highestCount) itemStack.set(WandOfTranslocationComponents.WAND_ABUNDANT_ITEM_NAME_COMPONENT, entry.getKey());
-        }*/
+        }
         itemStack.set(WandOfTranslocationComponents.WAND_IS_FULL_COMPONENT, true);
         itemStack.set(WandOfTranslocationComponents.WAND_INVENTORY_COMPONENT, inventory);
         target.clear();

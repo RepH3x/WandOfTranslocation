@@ -9,3 +9,8 @@
 /gamemode creative
 /gamemode survival
 /give @p minecraft:crafting_table 1
+/give @p minecraft:iron_ingot 64
+/give @p minecraft:ender_pearl 16
+/give @p minecraft:chest 64
+/give @p minecraft:barrel 64
+/give @p minecraft:crafting_table 1
